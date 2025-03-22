@@ -1,4 +1,4 @@
-const socket = io("http://localhost:3000/");
+const socket = io("http://localhost:3000");
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 
