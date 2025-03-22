@@ -2,12 +2,20 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-
 const app = express();
+
+// ✅ Allow CORS for all origins
+const allowedOrigins = ["https://meet-video-2.onrender.com", "http://localhost:3000"];
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
+}));
+
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: allowedOrigins,
         methods: ["GET", "POST"]
     }
 });
@@ -44,5 +52,5 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(3000, () => console.log("Server running on http://localhost:3000"));
+server.listen(3000, () => console.log("Server running on 3000"));
 

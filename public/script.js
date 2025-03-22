@@ -1,4 +1,8 @@
-const socket = io("http://localhost:3000");
+const socket = io("https://meet-video-2.onrender.com", {
+    transports: ["websocket", "polling"],  // ✅ Fix for Render deployment issues
+    withCredentials: true
+});
+
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 
@@ -11,7 +15,7 @@ async function joinRoom() {
     if (!roomId) return alert("Enter a Room ID!");
 
     socket.emit("join-room", roomId);
-
+      
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
     // ✅ Ensure Mobile & Firefox Compatibility
