@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,48 +14,27 @@
         </div>
         <video id="remoteVideo" autoplay></video>
         <video id="localVideo" autoplay muted></video>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
-    <script src="script.js"></script>
-</body>
-</html> -->
-
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat with Messaging</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="/socket.io/socket.io.js"></script>
-    <script defer src="script.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-</head>
-<body>
-    <div class="container">
-        <div class="video-container">
-            <video id="remoteVideo" autoplay></video>
-            <video id="localVideo" autoplay muted></video>
-        </div>
         <div class="controls">
-            <button id="muteButton"><i class="fa-solid fa-microphone"></i></button>
-            <button id="videoButton"><i class="fa-solid fa-video"></i></button>
+            <button title="muteButton" id="muteButton"><i class="fa-solid fa-microphone"></i></button>
+            <button title="videoButton" id="videoButton"><i class="fa-solid fa-video"></i></button>
             
         </div>
         <div class="chat-container">
             <div id="messages"></div>
             <div class="chat-input">
                 <input type="text" id="messageInput" placeholder="Type a message...">
-                <button id="sendMessage"><i class="fas fa-paper-plane"></i></button>
+                <button title="sendMessage" id="sendMessage"><i class="fas fa-paper-plane"></i></button>
             </div>
-        </div>
     </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
+
+
+
+
 
 
