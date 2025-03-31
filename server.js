@@ -45,6 +45,26 @@ io.on("connection", (socket) => {
             io.to(data.target).emit("signal", { sender: socket.id, signal: data.signal });
         });
 
+
+         // ✅ Handle Chat Messages
+         socket.on("chat-message", (messageData) => {
+            io.to(roomId).emit("chat-message", { 
+                sender: socket.id, 
+                message: messageData.message, 
+                timestamp: new Date().toISOString() 
+            });
+        });
+
+        // ✅ Handle Typing Indicator
+        socket.on("typing", () => {
+            socket.to(roomId).emit("typing", socket.id);
+        });
+
+        // ✅ Handle Stop Typing
+        socket.on("stop-typing", () => {
+            socket.to(roomId).emit("stop-typing", socket.id);
+        });
+
         socket.on("disconnect", () => {
             socket.to(roomId).emit("user-disconnected", socket.id);
             console.log(`${socket.id} left room ${roomId}`);
