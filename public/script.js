@@ -10,50 +10,102 @@ const chatButton = document.getElementById("chatButton");
 const chatMessages = document.getElementById("chatMessages");
 
 let localStream;
-let peer;
+let peer = null;
 let roomId;
 
-// Function to send message - moved outside joinRoom
+// Improved error logging function
+function logError(context, error) {
+    console.error(`[${context}] Error:`, error);
+    // Optional: Send error to server or analytics
+}
+
+// Function to reset peer connection
+function resetPeerConnection() {
+    if (peer) {
+        try {
+            peer.destroy();
+        } catch (error) {
+            logError('Peer Destroy', error);
+        }
+        peer = null;
+    }
+}
+
+// Function to create a new peer connection
+function createPeerConnection(initiator) {
+    resetPeerConnection();
+
+    try {
+        peer = new SimplePeer({
+            initiator: initiator,
+            trickle: false,
+            stream: localStream,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            }
+        });
+
+        peer.on('error', (err) => {
+            logError('Peer Connection', err);
+            alert('WebRTC connection error. Please try again.');
+            resetPeerConnection();
+        });
+
+        peer.on('signal', (data) => {
+            socket.emit('signal', { 
+                target: initiator ? 'remote' : socket.id, 
+                signal: data 
+            });
+        });
+
+        peer.on('stream', (remoteStream) => {
+            console.log('Remote stream received');
+            remoteVideo.srcObject = remoteStream;
+            remoteVideo.setAttribute('playsinline', 'true');
+            remoteVideo.setAttribute('autoplay', 'true');
+            remoteVideo.play().catch(err => logError('Video Play', err));
+        });
+
+        return peer;
+    } catch (error) {
+        logError('Create Peer', error);
+        alert('Failed to create WebRTC connection');
+        return null;
+    }
+}
+
 function sendMessage() {
     if (!roomId) {
-        console.error("Room ID not set. Please join a room first.");
-        alert("Please join a room before sending a message.");
+        alert("Please join a room first.");
         return;
     }
 
     const message = chatInput.value.trim();
-    if (!message) {
-        console.warn("Attempted to send empty message");
-        return;
-    }
+    if (!message) return;
 
     try {
-        socket.emit("chat-message", { roomId, message }, (error) => {
-            if (error) {
-                console.error("Message sending error:", error);
-                alert("Failed to send message. Please try again.");
-            }
-        });
+        socket.emit("chat-message", { roomId, message });
         chatInput.value = "";
     } catch (error) {
-        console.error("Unexpected error in sendMessage:", error);
-        alert("An unexpected error occurred while sending the message.");
+        logError('Send Message', error);
+        alert("Failed to send message.");
     }
 }
 
-// Add event listeners outside of joinRoom
 chatButton.addEventListener("click", sendMessage);
 chatInput.addEventListener("keypress", (event) => {
-    if (event.key === "Enter") {
-        sendMessage();
-    }
+    if (event.key === "Enter") sendMessage();
 });
 
 async function joinRoom() {
     roomId = document.getElementById("roomIdInput").value.trim();
-    if (!roomId) return alert("Enter a Room ID!");
-
-    socket.emit("join-room", roomId);
+    if (!roomId) {
+        alert("Enter a Room ID!");
+        return;
+    }
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ 
@@ -61,64 +113,33 @@ async function joinRoom() {
             audio: true 
         });
 
-    // Ensure Mobile & Firefox Compatibility
-    localVideo.srcObject = localStream;
-    localVideo.setAttribute("playsinline", "true");
-    localVideo.setAttribute("autoplay", "true");
-} catch (error) {
-    // Handle specific error types
-    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        alert('Camera or microphone not found. Please check your device connections.');
-    } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        alert('Permission to use camera and microphone was denied. Please allow access to use this app.');
-    } else {
-        alert(`Error accessing media devices: ${error.message}`);
+        localVideo.srcObject = localStream;
+        localVideo.setAttribute("playsinline", "true");
+        localVideo.setAttribute("autoplay", "true");
+        localVideo.play().catch(err => logError('Local Video', err));
+
+        socket.emit("join-room", roomId);
+    } catch (error) {
+        logError('Media Access', error);
+        alert('Failed to access camera/microphone');
+        return;
     }
-    console.error('Media access error:', error);
-    return;
-}
+
     socket.on("user-joined", (peerId) => {
-        if (!peer) {
-            peer = new SimplePeer({
-                initiator: true,
-                trickle: false,
-                stream: localStream,
-            });
-
-            peer.on("signal", (data) => {
-                socket.emit("signal", { target: peerId, signal: data });
-            });
-
-            peer.on("stream", (remoteStream) => {
-                remoteVideo.srcObject = remoteStream;
-                remoteVideo.setAttribute("playsinline", "true");
-                remoteVideo.setAttribute("autoplay", "true");
-            });
-        }
+        console.log('User joined, creating initiator peer');
+        createPeerConnection(true);
     });
 
     socket.on("signal", (data) => {
+        console.log('Received signal:', data);
         if (!peer) {
-            peer = new SimplePeer({
-                initiator: false,
-                trickle: false,
-                stream: localStream,
-            });
-
-            peer.on("signal", (signalData) => {
-                socket.emit("signal", { target: data.sender, signal: signalData });
-            });
-
-            peer.on("stream", (remoteStream) => {
-                remoteVideo.srcObject = remoteStream;
-                remoteVideo.setAttribute("playsinline", "true");
-                remoteVideo.setAttribute("autoplay", "true");
-            });
+            createPeerConnection(false);
         }
 
-        // Fix: Ensure correct SDP signaling
-        if (peer) {
+        try {
             peer.signal(data.signal);
+        } catch (error) {
+            logError('Signal Processing', error);
         }
     });
 
@@ -126,20 +147,16 @@ async function joinRoom() {
         alert("Room is full! Only 2 users allowed.");
     });
 
-    // Listen for incoming chat messages
     socket.on("chat-message", (data) => {
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
         messageElement.innerHTML = `<strong>${data.sender}</strong>: ${data.message} <span class="time">${new Date(data.timestamp).toLocaleTimeString()}</span>`;
         chatMessages.appendChild(messageElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to the latest message
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     });
 
     socket.on("user-disconnected", () => {
-        if (peer) {
-            peer.destroy();
-            peer = null;
-            remoteVideo.srcObject = null;
-        }
+        resetPeerConnection();
+        remoteVideo.srcObject = null;
     });
 }
