@@ -29,6 +29,12 @@ io.on("connection", (socket) => {
         socket.join(roomId);
         const users = io.sockets.adapter.rooms.get(roomId);
 
+        // ✅ Improved room joining logic
+        if (!users) {
+            console.error("Room users not found");
+            return;
+        }
+
         if (users.size > 2) {
             socket.emit("room-full");
             socket.leave(roomId);
@@ -45,9 +51,13 @@ io.on("connection", (socket) => {
             io.to(data.target).emit("signal", { sender: socket.id, signal: data.signal });
         });
 
-
-         // ✅ Handle Chat Messages
-         socket.on("chat-message", (messageData) => {
+        // ✅ Handle Chat Messages with improved error handling
+        socket.on("chat-message", (messageData) => {
+            if (!messageData || !messageData.message) {
+                console.error("Invalid message data:", messageData);
+                return;
+            }
+            
             io.to(roomId).emit("chat-message", { 
                 sender: socket.id, 
                 message: messageData.message, 
@@ -73,4 +83,3 @@ io.on("connection", (socket) => {
 });
 
 server.listen(3000, () => console.log("Server running on 3000"));
-
