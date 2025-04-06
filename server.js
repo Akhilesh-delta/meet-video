@@ -4,10 +4,21 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const app = express();
 
-// ✅ Allow CORS for all origins
-const allowedOrigins = ["https://meet-video-2.onrender.com", "http://localhost:3000"];
+// ✅ Improved CORS configuration
+const allowedOrigins = [
+    "https://meet-video-2.onrender.com", 
+    "http://localhost:3000",
+    "https://localhost:3000"
+];
+
 app.use(cors({
-    origin: allowedOrigins,
+    origin: function(origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
 }));
@@ -29,12 +40,13 @@ io.on("connection", (socket) => {
         socket.join(roomId);
         const users = io.sockets.adapter.rooms.get(roomId);
 
-        if (users.size > 2) {
+        if (users && users.size > 2) {
             socket.emit("room-full");
             socket.leave(roomId);
             return;
         }
 
+        // Broadcast to other users in the room
         socket.to(roomId).emit("user-joined", socket.id);
 
         socket.on("screen-share", (data) => {
@@ -42,12 +54,15 @@ io.on("connection", (socket) => {
         });
 
         socket.on("signal", (data) => {
-            io.to(data.target).emit("signal", { sender: socket.id, signal: data.signal });
+            // Ensure the signal is sent only to the target
+            io.to(data.target).emit("signal", { 
+                sender: socket.id, 
+                signal: data.signal 
+            });
         });
 
-
-         // ✅ Handle Chat Messages
-         socket.on("chat-message", (messageData) => {
+        // ✅ Handle Chat Messages
+        socket.on("chat-message", (messageData) => {
             io.to(roomId).emit("chat-message", { 
                 sender: socket.id, 
                 message: messageData.message, 
@@ -72,5 +87,4 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(3000, () => console.log("Server running on 3000"));
-
+server.listen(3000, '0.0.0.0', () => console.log("Server running on 3000"));
