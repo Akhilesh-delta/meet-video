@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Video Call</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,16 +16,17 @@
         <video id="remoteVideo" autoplay></video>
         <video id="localVideo" autoplay muted></video>
         <div class="controls">
-            <button title="muteButton" id="muteButton"><i class="fa-solid fa-microphone"></i></button>
-            <button title="videoButton" id="videoButton"><i class="fa-solid fa-video"></i></button>
-            
+            <button id="muteButton" title="Toggle Mute"><i class="fa-solid fa-microphone"></i></button>
+            <button id="videoButton" title="Toggle Video"><i class="fa-solid fa-video"></i></button>
         </div>
+        
         <div class="chat-container">
-            <div id="messages"></div>
+            <div id="chatMessages" class="chat-messages"></div>
             <div class="chat-input">
-                <input type="text" id="messageInput" placeholder="Type a message...">
-                <button title="sendMessage" id="sendMessage"><i class="fas fa-paper-plane"></i></button>
+                <input type="text" id="chatInput" placeholder="Type a message...">
+                <button id="chatButton" title="Send Message"><i class="fas fa-paper-plane"></i></button>
             </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -32,9 +34,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
-
